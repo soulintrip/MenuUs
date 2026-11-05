@@ -183,12 +183,16 @@ const U={g:'г',ml:'мл',pcs:'шт'};
 
 // ---------- состояние ----------
 const KEY='menu_app_v1';
-let S=Object.assign({kcal:2000,cont:true,ci:[],cd:[],off:[],del:[],packs:{},prices:{},pantry:{},menu:null,applied:false,backup:null,snap:null},
+let S=Object.assign({kcal:2000,cont:true,ci:[],cd:[],off:[],del:[],delI:[],packs:{},prices:{},pantry:{},menu:null,applied:false,backup:null,snap:null},
   JSON.parse(localStorage.getItem(KEY)||'{}'));
 const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
-const ING=()=>[...BI,...S.ci].map(x=>({...x,p:S.packs[x.id]||x.p,c:S.prices[x.id]??x.c??PR[x.id]??0}));
+const ING=()=>[...BI.filter(x=>!S.delI.includes(x.id)),...S.ci].map(x=>({...x,p:S.packs[x.id]||x.p,c:S.prices[x.id]??x.c??PR[x.id]??0}));
 const ingMap=()=>Object.fromEntries(ING().map(x=>[x.id,x]));
-const DISH=()=>[...BD.filter(d=>!S.del.includes(d.id)),...S.cd];
+// блюда, у которых удалён хотя бы один продукт, скрыты
+const DISH=()=>{
+  const ok=new Set(ING().map(x=>x.id));
+  return [...BD.filter(d=>!S.del.includes(d.id)),...S.cd].filter(d=>Object.keys(d.i).every(id=>ok.has(id)));
+};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const f=(v,u)=>(Math.round(v*10)/10)+' '+U[u];
@@ -224,6 +228,13 @@ function gen(){
 }
 function rr(di,c){
   touch();S.menu[di][c]=pick(c,[S.menu[0][c],S.menu[1][c]]);save();render();
+}
+// заменить в меню блюда, которых больше нет
+function fixMenu(){
+  const ids=new Set(DISH().map(d=>d.id));
+  S.menu.forEach(day=>{for(const c of 'bld')if(!ids.has(day[c])){
+    day[c]=pick(c,S.menu.map(x=>x[c]).filter(x=>ids.has(x)));
+  }});
 }
 function totals(){
   const dm=Object.fromEntries(DISH().map(d=>[d.id,d])),need={};
@@ -329,9 +340,7 @@ function delDish(id){
   if(id[0]==='c')S.cd=S.cd.filter(x=>x.id!==id);
   else if(!S.del.includes(id))S.del.push(id);
   S.off=S.off.filter(x=>x!==id);
-  S.menu.forEach(day=>{for(const c of 'bld')if(day[c]===id){
-    day[c]=pick(c,S.menu.map(x=>x[c]).filter(x=>x!==id));
-  }});
+  fixMenu();
   save();render();
 }
 function restoreDishes(){
@@ -390,7 +399,7 @@ function vDishes(){
       <span>${esc(d.n)} <span class="sm">${k} ккал/порц.</span></span></label>
       <button class="dn" onclick="delDish('${d.id}')">×</button></div>`}).join('')+`</div>`;
   }
-  h+=`<div class="card sm">Галочка — участвует в случайной выборке. × — удалить блюдо из списка.
+  h+=`<div class="card sm">Галочка — участвует в случайной выборке. × — удалить блюдо из списка. Блюда с удалённым продуктом скрыты.
   ${S.del.length?`<div><button onclick="restoreDishes()">Вернуть удалённые (${S.del.length})</button></div>`:''}</div>`;
   h+=`<div class="card"><h3>Добавить блюдо</h3>
   <input id="dn" placeholder="Название" style="width:100%;margin-bottom:6px">
@@ -415,8 +424,22 @@ function addIng(){
   S.ci.push({id:'x'+Date.now(),n,u,p,k:u==='pcs'?k:k/100,c});save();render();
 }
 function delIng(id){
-  if(DISH().some(d=>id in d.i)){alert('Продукт используется в блюдах');return}
-  S.ci=S.ci.filter(i=>i.id!==id);delete S.pantry[id];delete S.packs[id];delete S.prices[id];save();render();
+  const it=ingMap()[id];if(!it)return;
+  const used=DISH().filter(d=>id in d.i);
+  const msg='Удалить продукт «'+it.n+'»?'+(used.length?'\nБлюда с ним ('+used.length+') тоже пропадут из списка.':'');
+  if(!confirm(msg))return;
+  touch();
+  if(id[0]==='x'){
+    S.ci=S.ci.filter(i=>i.id!==id);
+    S.cd=S.cd.filter(d=>!(id in d.i));
+    delete S.packs[id];delete S.prices[id];
+  }else if(!S.delI.includes(id))S.delI.push(id);
+  delete S.pantry[id];
+  fixMenu();save();render();
+}
+function restoreIngs(){
+  if(!confirm('Вернуть все удалённые встроенные продукты?'))return;
+  S.delI=[];save();render();
 }
 function vIngs(){
   const cost=buyCost(buyRows());
@@ -424,13 +447,14 @@ function vIngs(){
   <div class="tot">${gbp(cost)}</div>
   <div class="sm">По текущему меню, за вычетом остатков, упаковками целиком. Детали — во вкладке «Покупки».</div></div>
   <div class="card"><h3>Продукты, упаковки и цены</h3>
-  <div class="sm">Цена — за одну упаковку, £. Цены Tesco UK приблизительные: сверь с tesco.com и поправь. Пустое поле — вернуть стандартную цену. Размер упаковки задаёт округление закупки вверх.</div>
+  <div class="sm">Цена — за одну упаковку, £. Цены Tesco UK приблизительные: сверь с tesco.com и поправь. Пустое поле — вернуть стандартную цену. Размер упаковки задаёт округление закупки вверх. × — удалить продукт.</div>
   <table><tr><th>Продукт</th><th>Упаковка</th><th>£</th><th></th></tr>
   ${ING().map(i=>`<tr><td>${esc(i.n)}<div class="sm">${i.u==='pcs'?Math.round(i.k)+' ккал/шт':Math.round(i.k*100)+' ккал/100'}</div></td>
   <td><input type="number" min="1" step="any" value="${i.p}" style="width:72px" onchange="setPack('${i.id}',this.value)"> ${U[i.u]}</td>
   <td><input type="number" min="0" step="0.01" value="${i.c}" style="width:64px" onchange="setPrice('${i.id}',this.value)"></td>
-  <td>${i.id[0]==='x'?`<button class="dn" onclick="delIng('${i.id}')">×</button>`:''}</td></tr>`).join('')}</table>
-  <button onclick="resetPrices()" style="margin-top:8px">Сбросить все цены</button></div>
+  <td><button class="dn" onclick="delIng('${i.id}')">×</button></td></tr>`).join('')}</table>
+  <button onclick="resetPrices()" style="margin-top:8px">Сбросить все цены</button>
+  ${S.delI.length?`<button onclick="restoreIngs()" style="margin-top:8px">Вернуть удалённые продукты (${S.delI.length})</button>`:''}</div>
   <div class="card"><h3>Добавить продукт</h3>
   <input id="in" placeholder="Название" style="width:100%;margin-bottom:6px">
   <select id="iu"><option value="g">граммы</option><option value="ml">мл</option><option value="pcs">штуки</option></select>
