@@ -12,14 +12,15 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;font:15px/1.4 system-ui,sans-serif;background:#f4f4f2;color:#222;max-width:760px;margin:auto;padding-bottom:calc(40px + env(safe-area-inset-bottom))}
-#tabs{display:flex;position:sticky;top:0;background:#222;overflow-x:auto;padding-top:env(safe-area-inset-top)}
+#tabs{display:flex;position:sticky;top:0;z-index:5;background:#222;overflow-x:auto;padding-top:env(safe-area-inset-top)}
 #tabs button{flex:1;background:none;border:0;color:#bbb;padding:12px 8px;white-space:nowrap;font-size:14px}
 #tabs button.on{color:#fff;border-bottom:3px solid #4caf50}
-#view{padding:10px}
+#view{padding:10px;min-height:70vh}
 .card{background:#fff;border-radius:10px;padding:12px;margin-bottom:10px;box-shadow:0 1px 2px #0002}
 .meal{border-top:1px solid #eee;padding:8px 0}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0}
 .sm{font-size:13px;color:#666}
+.tot{font-size:18px;font-weight:600;color:#2e7d32}
 h3{margin:0 0 6px}
 button{font:inherit;padding:6px 10px;border:1px solid #ccc;border-radius:8px;background:#fff}
 button.pri{background:#2e7d32;color:#fff;border-color:#2e7d32;margin-top:8px}
@@ -83,7 +84,6 @@ const BI=[
 ['bacon','Бекон','g',240,2.7],['spinach','Шпинат','g',240,.23],['lentils','Красная чечевица','g',500,3.5],
 ['cod','Треска','g',360,.82],['mushroom','Грибы','g',300,.22],['cottage','Творог','g',300,.98],
 ['pepper','Болгарский перец','pcs',3,35],['beans','Фасоль консервированная','g',400,.85],
-// новые
 ['granola','Гранола','g',500,4.2],['berries','Ягоды (клубника/черника)','g',150,.45],
 ['flour','Мука пшеничная','g',1500,3.5],['jam','Джем','g',340,2.5],['avocado','Авокадо','pcs',2,230],
 ['pbutter','Арахисовая паста','g',340,6],['ham','Ветчина','g',200,1.1],['smsalmon','Копчёный лосось','g',120,1.8],
@@ -98,6 +98,18 @@ const BI=[
 ['prawns','Креветки','g',200,.9],['parmesan','Пармезан','g',100,4.3],['gnocchi','Ньокки','g',500,1.5],
 ['couscous','Кускус','g',500,3.6],['aubergine','Баклажан','pcs',1,70],['mozzarella','Моцарелла','g',125,2.4]
 ].map(([id,n,u,p,k])=>({id,n,u,p,k}));
+
+// цена упаковки в £ (оценка Tesco UK 2026; часть позиций сверена с источниками, остальное ориентир)
+const PR={
+oats:1.5,milk:1.2,eggs:1.45,bread:.55,butter:1.99,cheese:2.75,tomato:1.2,cucumber:.85,yogurt:1.1,
+banana:1,apple:1.75,honey:2.5,chicken:5,rice:1.6,pasta:.9,potato:2.1,onion:1,oil:4.5,
+beef:2.99,passata:.85,salmon:3.75,broccoli:.9,carrot:.6,cream:1.6,bacon:2,spinach:1.6,
+lentils:1.5,cod:4.5,mushroom:1.2,cottage:1.25,pepper:1.75,beans:.28,
+granola:2,berries:2.5,flour:1.1,jam:1.15,avocado:1.6,pbutter:1.75,ham:1.8,smsalmon:3,
+creamch:1.4,zucchini:1.4,feta:2.2,tuna:1.4,lettuce:1,olives:1.1,tortilla:1.25,hummus:1.3,
+squash:1.3,peas:1.6,chickpeas:.6,corn:.8,cauli:1.1,lasagne:1.1,pork:3,gbeans:1,
+sausage:2,turkey:3.1,prawns:3,parmesan:2.5,gnocchi:1.5,couscous:1.1,aubergine:.9,mozzarella:.85
+};
 
 // c: b=завтрак, l=ланч, d=ужин; i: ингредиенты на 1 порцию
 const BD=[
@@ -171,15 +183,16 @@ const U={g:'г',ml:'мл',pcs:'шт'};
 
 // ---------- состояние ----------
 const KEY='menu_app_v1';
-let S=Object.assign({kcal:2000,cont:true,ci:[],cd:[],off:[],del:[],packs:{},pantry:{},menu:null,applied:false,backup:null,snap:null},
+let S=Object.assign({kcal:2000,cont:true,ci:[],cd:[],off:[],del:[],packs:{},prices:{},pantry:{},menu:null,applied:false,backup:null,snap:null},
   JSON.parse(localStorage.getItem(KEY)||'{}'));
 const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
-const ING=()=>[...BI,...S.ci].map(x=>({...x,p:S.packs[x.id]||x.p}));
+const ING=()=>[...BI,...S.ci].map(x=>({...x,p:S.packs[x.id]||x.p,c:S.prices[x.id]??x.c??PR[x.id]??0}));
 const ingMap=()=>Object.fromEntries(ING().map(x=>[x.id,x]));
 const DISH=()=>[...BD.filter(d=>!S.del.includes(d.id)),...S.cd];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const f=(v,u)=>(Math.round(v*10)/10)+' '+U[u];
+const gbp=v=>'£'+(Math.round(v*100)/100).toFixed(2);
 let tab='menu';
 
 // отмена применения при изменении меню
@@ -229,6 +242,12 @@ function plan(){
     return{i,id,n,st,packs,left:st+packs*i.p-n};
   }).sort((a,b)=>a.i.n.localeCompare(b.i.n,'ru'));
 }
+// строки закупки (после «применить» берётся снимок)
+function buyRows(){
+  const m=ingMap();
+  return(S.applied&&S.snap)?S.snap.filter(r=>m[r.id]).map(r=>({i:m[r.id],...r})):plan();
+}
+const buyCost=rows=>rows.reduce((a,r)=>a+r.packs*r.i.c,0);
 function apply(){
   if(S.applied)return;
   const rows=plan();
@@ -249,7 +268,7 @@ function vMenu(){
   <label>Ккал на человека в день <input type="number" min="1000" max="4000" step="50" value="${S.kcal}" onchange="touch();S.kcal=Math.max(1000,Math.min(4000,+this.value||2000));save();render()"></label>
   <label class="ck"><input type="checkbox" ${S.cont?'checked':''} onchange="touch();S.cont=this.checked;save();render()"> Порция в контейнер на каждом ужине (+1 человек)</label>
   <button class="pri" onclick="gen()">Пересобрать всё меню</button>
-  <div class="sm">Распределение: завтрак 30%, ланч 20%, ужин 50%. Контейнер не входит в норму.</div></div>`;
+  <div class="sm">Распределение: завтрак 30%, ланч 20%, ужин 50%. Контейнер не входит в норму. Вкладки переключаются свайпом.</div></div>`;
   S.menu.forEach((day,di)=>{
     let tot=0,cards='';
     for(const c of 'bld'){
@@ -266,15 +285,14 @@ function vMenu(){
 }
 
 function vBuy(){
-  const m=ingMap();
-  const rows=(S.applied&&S.snap)?S.snap.filter(r=>m[r.id]).map(r=>({i:m[r.id],...r})):plan();
-  const packs=rows.reduce((a,r)=>a+r.packs,0);
+  const rows=buyRows();
+  const packs=rows.reduce((a,r)=>a+r.packs,0),cost=buyCost(rows);
   let h=`<div class="card"><h3>Список покупок</h3>
-  <div class="sm">Размеры упаковок — ориентир Tesco, правятся во вкладке «Продукты». «Есть» берётся из остатков.</div>
+  <div class="sm">Размеры упаковок и цены — ориентир Tesco, правятся во вкладке «Продукты». «Есть» берётся из остатков.</div>
   <table><tr><th>Продукт</th><th>Нужно</th><th>Есть</th><th>Купить</th><th>Останется</th></tr>
   ${rows.map(r=>`<tr><td>${esc(r.i.n)}</td><td>${f(r.n,r.i.u)}</td><td>${r.st?f(r.st,r.i.u):'—'}</td>
-  <td>${r.packs?`<b>${r.packs} × ${f(r.i.p,r.i.u)}</b>`:'—'}</td><td>${f(Math.max(0,r.left),r.i.u)}</td></tr>`).join('')}</table>
-  <p>Упаковок к покупке: <b>${packs}</b></p>
+  <td>${r.packs?`<b>${r.packs} × ${f(r.i.p,r.i.u)}</b><div class="sm">${gbp(r.packs*r.i.c)}</div>`:'—'}</td><td>${f(Math.max(0,r.left),r.i.u)}</td></tr>`).join('')}</table>
+  <p>Упаковок к покупке: <b>${packs}</b><br>Стоимость закупки: <span class="tot">${gbp(cost)}</span></p>
   ${S.applied
    ?`<div class="sm">Применено: остатки обновлены (куплено и израсходовано).</div><button class="dn" onclick="undo()">Отменить применение</button>`
    :`<button class="pri" onclick="apply()">Купил и приготовил → обновить остатки</button>`}
@@ -311,7 +329,6 @@ function delDish(id){
   if(id[0]==='c')S.cd=S.cd.filter(x=>x.id!==id);
   else if(!S.del.includes(id))S.del.push(id);
   S.off=S.off.filter(x=>x!==id);
-  // заменить блюдо в текущем меню
   S.menu.forEach(day=>{for(const c of 'bld')if(day[c]===id){
     day[c]=pick(c,S.menu.map(x=>x[c]).filter(x=>x!==id));
   }});
@@ -331,6 +348,7 @@ function addRow(){
   <input class="ra" type="number" min="0" step="any" placeholder="на 1 порц." style="width:95px">
   <input class="rk" type="number" min="0" step="any" placeholder="ккал/100 (шт: на 1)" style="width:130px">
   <input class="rp" type="number" min="1" step="any" placeholder="упаковка" style="width:90px">
+  <input class="rc" type="number" min="0" step="0.01" placeholder="цена упак. £" style="width:105px">
   <button onclick="this.closest('.ir').remove()">×</button></div>`;
   $('#dr').appendChild(d);
 }
@@ -342,7 +360,8 @@ function saveDish(){
     u:r.querySelector('.ru').value,
     a:+r.querySelector('.ra').value,
     k:+r.querySelector('.rk').value||0,
-    p:+r.querySelector('.rp').value
+    p:+r.querySelector('.rp').value,
+    c:+r.querySelector('.rc').value||0
   })).filter(r=>r.name||r.a);
   if(!n||!rows.length||rows.some(r=>!r.name||!(r.a>0))){
     alert('Нужны название блюда, а у каждого ингредиента — название и количество');return;
@@ -352,7 +371,7 @@ function saveDish(){
     let ex=ING().find(x=>x.n.toLowerCase()===r.name.toLowerCase());
     if(!ex){
       const p=r.p>0?r.p:(r.u==='pcs'?6:500);
-      ex={id:'x'+Date.now()+'_'+idx,n:r.name,u:r.u,p,k:r.u==='pcs'?r.k:r.k/100};
+      ex={id:'x'+Date.now()+'_'+idx,n:r.name,u:r.u,p,k:r.u==='pcs'?r.k:r.k/100,c:r.c};
       S.ci.push(ex);
     }
     i[ex.id]=(i[ex.id]||0)+r.a;
@@ -384,28 +403,40 @@ function vDishes(){
 }
 
 function setPack(id,v){v=+v;if(v>0)S.packs[id]=v;else delete S.packs[id];touch();save();render()}
+function setPrice(id,v){
+  v=parseFloat(String(v).replace(',','.'));
+  if(isNaN(v)||v<0)delete S.prices[id];else S.prices[id]=v;
+  save();render();
+}
+function resetPrices(){if(confirm('Вернуть все цены к стандартным?')){S.prices={};save();render()}}
 function addIng(){
-  const n=$('#in').value.trim(),u=$('#iu').value,p=+$('#ip').value,k=+$('#ik').value||0;
+  const n=$('#in').value.trim(),u=$('#iu').value,p=+$('#ip').value,k=+$('#ik').value||0,c=+$('#ic').value||0;
   if(!n||!(p>0)){alert('Нужны название и размер упаковки');return}
-  S.ci.push({id:'x'+Date.now(),n,u,p,k:u==='pcs'?k:k/100});save();render();
+  S.ci.push({id:'x'+Date.now(),n,u,p,k:u==='pcs'?k:k/100,c});save();render();
 }
 function delIng(id){
   if(DISH().some(d=>id in d.i)){alert('Продукт используется в блюдах');return}
-  S.ci=S.ci.filter(i=>i.id!==id);delete S.pantry[id];delete S.packs[id];save();render();
+  S.ci=S.ci.filter(i=>i.id!==id);delete S.pantry[id];delete S.packs[id];delete S.prices[id];save();render();
 }
 function vIngs(){
-  return `<div class="card"><h3>Продукты и упаковки</h3>
-  <div class="sm">Размер упаковки задаёт округление закупки вверх. Сверь с актуальными упаковками Tesco.</div>
-  <table><tr><th>Продукт</th><th>Упаковка</th><th>Ккал</th><th></th></tr>
-  ${ING().map(i=>`<tr><td>${esc(i.n)}</td>
-  <td><input type="number" min="1" step="any" value="${i.p}" style="width:80px" onchange="setPack('${i.id}',this.value)"> ${U[i.u]}</td>
-  <td>${i.u==='pcs'?Math.round(i.k)+'/шт':Math.round(i.k*100)+'/100'}</td>
-  <td>${i.id[0]==='x'?`<button class="dn" onclick="delIng('${i.id}')">×</button>`:''}</td></tr>`).join('')}</table></div>
+  const cost=buyCost(buyRows());
+  return `<div class="card"><h3>Стоимость закупки</h3>
+  <div class="tot">${gbp(cost)}</div>
+  <div class="sm">По текущему меню, за вычетом остатков, упаковками целиком. Детали — во вкладке «Покупки».</div></div>
+  <div class="card"><h3>Продукты, упаковки и цены</h3>
+  <div class="sm">Цена — за одну упаковку, £. Цены Tesco UK приблизительные: сверь с tesco.com и поправь. Пустое поле — вернуть стандартную цену. Размер упаковки задаёт округление закупки вверх.</div>
+  <table><tr><th>Продукт</th><th>Упаковка</th><th>£</th><th></th></tr>
+  ${ING().map(i=>`<tr><td>${esc(i.n)}<div class="sm">${i.u==='pcs'?Math.round(i.k)+' ккал/шт':Math.round(i.k*100)+' ккал/100'}</div></td>
+  <td><input type="number" min="1" step="any" value="${i.p}" style="width:72px" onchange="setPack('${i.id}',this.value)"> ${U[i.u]}</td>
+  <td><input type="number" min="0" step="0.01" value="${i.c}" style="width:64px" onchange="setPrice('${i.id}',this.value)"></td>
+  <td>${i.id[0]==='x'?`<button class="dn" onclick="delIng('${i.id}')">×</button>`:''}</td></tr>`).join('')}</table>
+  <button onclick="resetPrices()" style="margin-top:8px">Сбросить все цены</button></div>
   <div class="card"><h3>Добавить продукт</h3>
   <input id="in" placeholder="Название" style="width:100%;margin-bottom:6px">
   <select id="iu"><option value="g">граммы</option><option value="ml">мл</option><option value="pcs">штуки</option></select>
   <input id="ip" type="number" min="1" step="any" placeholder="Упаковка" style="width:100px">
   <input id="ik" type="number" min="0" step="any" placeholder="Ккал/100 или /шт" style="width:140px">
+  <input id="ic" type="number" min="0" step="0.01" placeholder="Цена упак. £" style="width:110px">
   <button class="pri" onclick="addIng()">Добавить</button></div>`;
 }
 
@@ -413,7 +444,24 @@ function render(){
   $('#tabs').innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" onclick="setTab('${k}')">${l}</button>`).join('');
   $('#view').innerHTML={menu:vMenu,buy:vBuy,stock:vStock,dishes:vDishes,ings:vIngs}[tab]();
   if(tab==='dishes')addRow();
+  const on=$('#tabs .on');if(on&&on.scrollIntoView)on.scrollIntoView({inline:'center',block:'nearest'});
 }
+
+// ---------- свайп между вкладками ----------
+let tx=0,ty=0,sw=false;
+document.addEventListener('touchstart',e=>{
+  const t=e.touches[0];tx=t.clientX;ty=t.clientY;
+  sw=e.touches.length===1&&!e.target.closest('input,select,textarea,#tabs');
+},{passive:true});
+document.addEventListener('touchend',e=>{
+  if(!sw)return;sw=false;
+  const t=e.changedTouches[0],dx=t.clientX-tx,dy=t.clientY-ty;
+  if(Math.abs(dx)<70||Math.abs(dx)<Math.abs(dy)*1.5)return;
+  const i=TABS.findIndex(x=>x[0]===tab),n=i+(dx<0?1:-1);
+  if(n<0||n>=TABS.length)return;
+  setTab(TABS[n][0]);window.scrollTo(0,0);
+},{passive:true});
+
 if(!S.menu||!S.menu.length)gen();else render();
 </script>
 </body>
