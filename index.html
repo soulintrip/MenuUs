@@ -379,4 +379,42 @@ function vDishes(){
   <div id="dr"></div>
   <button onclick="addRow()">+ ингредиент</button>
   <button class="pri" onclick="saveDish()">Сохранить блюдо</button>
-  <div c
+  <div class="sm">Все ингредиенты вводятся вручную, количество — на 1 порцию. Упаковка не указана — подставится 500 г/мл или 6 шт. Новые продукты можно править во вкладке «Продукты».</div></div>`;
+  return h;
+}
+
+function setPack(id,v){v=+v;if(v>0)S.packs[id]=v;else delete S.packs[id];touch();save();render()}
+function addIng(){
+  const n=$('#in').value.trim(),u=$('#iu').value,p=+$('#ip').value,k=+$('#ik').value||0;
+  if(!n||!(p>0)){alert('Нужны название и размер упаковки');return}
+  S.ci.push({id:'x'+Date.now(),n,u,p,k:u==='pcs'?k:k/100});save();render();
+}
+function delIng(id){
+  if(DISH().some(d=>id in d.i)){alert('Продукт используется в блюдах');return}
+  S.ci=S.ci.filter(i=>i.id!==id);delete S.pantry[id];delete S.packs[id];save();render();
+}
+function vIngs(){
+  return `<div class="card"><h3>Продукты и упаковки</h3>
+  <div class="sm">Размер упаковки задаёт округление закупки вверх. Сверь с актуальными упаковками Tesco.</div>
+  <table><tr><th>Продукт</th><th>Упаковка</th><th>Ккал</th><th></th></tr>
+  ${ING().map(i=>`<tr><td>${esc(i.n)}</td>
+  <td><input type="number" min="1" step="any" value="${i.p}" style="width:80px" onchange="setPack('${i.id}',this.value)"> ${U[i.u]}</td>
+  <td>${i.u==='pcs'?Math.round(i.k)+'/шт':Math.round(i.k*100)+'/100'}</td>
+  <td>${i.id[0]==='x'?`<button class="dn" onclick="delIng('${i.id}')">×</button>`:''}</td></tr>`).join('')}</table></div>
+  <div class="card"><h3>Добавить продукт</h3>
+  <input id="in" placeholder="Название" style="width:100%;margin-bottom:6px">
+  <select id="iu"><option value="g">граммы</option><option value="ml">мл</option><option value="pcs">штуки</option></select>
+  <input id="ip" type="number" min="1" step="any" placeholder="Упаковка" style="width:100px">
+  <input id="ik" type="number" min="0" step="any" placeholder="Ккал/100 или /шт" style="width:140px">
+  <button class="pri" onclick="addIng()">Добавить</button></div>`;
+}
+
+function render(){
+  $('#tabs').innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" onclick="setTab('${k}')">${l}</button>`).join('');
+  $('#view').innerHTML={menu:vMenu,buy:vBuy,stock:vStock,dishes:vDishes,ings:vIngs}[tab]();
+  if(tab==='dishes')addRow();
+}
+if(!S.menu||!S.menu.length)gen();else render();
+</script>
+</body>
+</html>
