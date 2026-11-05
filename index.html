@@ -268,6 +268,11 @@ function apply(){
   S.applied=true;save();render();
 }
 function undo(){touch();save();render()}
+// следующий цикл: остатки сохраняются, меню собирается заново
+function nextCycle(){
+  S.applied=false;S.backup=null;S.snap=null;
+  gen();
+}
 
 // ---------- представления ----------
 const TABS=[['menu','Меню'],['buy','Покупки'],['stock','Остатки'],['dishes','Блюда'],['ings','Продукты']];
@@ -305,7 +310,9 @@ function vBuy(){
   <td>${r.packs?`<b>${r.packs} × ${f(r.i.p,r.i.u)}</b><div class="sm">${gbp(r.packs*r.i.c)}</div>`:'—'}</td><td>${f(Math.max(0,r.left),r.i.u)}</td></tr>`).join('')}</table>
   <p>Упаковок к покупке: <b>${packs}</b><br>Стоимость закупки: <span class="tot">${gbp(cost)}</span></p>
   ${S.applied
-   ?`<div class="sm">Применено: остатки обновлены (куплено и израсходовано).</div><button class="dn" onclick="undo()">Отменить применение</button>`
+   ?`<div class="sm">Применено: остатки обновлены (куплено и израсходовано).</div>
+   <button class="pri" onclick="nextCycle()">Следующие 2 дня с этими остатками</button>
+   <button class="dn" onclick="undo()" style="margin-top:8px">Отменить применение</button>`
    :`<button class="pri" onclick="apply()">Купил и приготовил → обновить остатки</button>`}
   </div>`;
   return h;
