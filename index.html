@@ -82,22 +82,68 @@ const BI=[
 ['broccoli','Брокколи','g',350,.34],['carrot','Морковь','g',1000,.4],['cream','Сливки','ml',300,3.4],
 ['bacon','Бекон','g',240,2.7],['spinach','Шпинат','g',240,.23],['lentils','Красная чечевица','g',500,3.5],
 ['cod','Треска','g',360,.82],['mushroom','Грибы','g',300,.22],['cottage','Творог','g',300,.98],
-['pepper','Болгарский перец','pcs',3,35],['beans','Фасоль консервированная','g',400,.85]
+['pepper','Болгарский перец','pcs',3,35],['beans','Фасоль консервированная','g',400,.85],
+// новые
+['granola','Гранола','g',500,4.2],['berries','Ягоды (клубника/черника)','g',150,.45],
+['flour','Мука пшеничная','g',1500,3.5],['jam','Джем','g',340,2.5],['avocado','Авокадо','pcs',2,230],
+['pbutter','Арахисовая паста','g',340,6],['ham','Ветчина','g',200,1.1],['smsalmon','Копчёный лосось','g',120,1.8],
+['creamch','Сливочный сыр','g',200,2.5],['zucchini','Цукини','pcs',3,35],['feta','Сыр фета','g',200,2.64],
+['tuna','Тунец консервированный','g',145,1.1],['lettuce','Салатные листья','g',150,.15],
+['olives','Оливки','g',150,1.4],['tortilla','Тортильи','pcs',8,130],['hummus','Хумус','g',200,2.9],
+['squash','Тыква','g',900,.45],['peas','Зелёный горошек (заморозка)','g',900,.8],
+['chickpeas','Нут консервированный','g',400,1.2],['corn','Кукуруза консервированная','g',340,.8],
+['cauli','Цветная капуста','g',600,.25],['lasagne','Листы лазаньи','g',250,3.5],
+['pork','Свиные стейки','g',400,1.4],['gbeans','Стручковая фасоль','g',200,.3],
+['sausage','Колбаски свиные','g',450,2.9],['turkey','Фарш индейки','g',500,1.2],
+['prawns','Креветки','g',200,.9],['parmesan','Пармезан','g',100,4.3],['gnocchi','Ньокки','g',500,1.5],
+['couscous','Кускус','g',500,3.6],['aubergine','Баклажан','pcs',1,70],['mozzarella','Моцарелла','g',125,2.4]
 ].map(([id,n,u,p,k])=>({id,n,u,p,k}));
 
 // c: b=завтрак, l=ланч, d=ужин; i: ингредиенты на 1 порцию
 const BD=[
+// --- завтраки (20) ---
 {id:'d1',c:'b',n:'Овсянка на молоке с бананом',i:{oats:60,milk:200,banana:1,honey:10}},
 {id:'d2',c:'b',n:'Омлет с сыром и помидорами',i:{eggs:3,cheese:30,tomato:80,butter:8}},
 {id:'d3',c:'b',n:'Болтунья на тосте',i:{eggs:2,bread:70,butter:10,tomato:60}},
 {id:'d4',c:'b',n:'Йогурт с яблоком, мёдом и овсянкой',i:{yogurt:200,apple:1,honey:15,oats:30}},
 {id:'d5',c:'b',n:'Бутерброды с сыром и огурцом',i:{bread:90,cheese:40,butter:10,cucumber:.5}},
 {id:'d6',c:'b',n:'Творог с бананом и мёдом',i:{cottage:150,banana:1,honey:10}},
+{id:'d21',c:'b',n:'Гранола с йогуртом и ягодами',i:{granola:50,yogurt:150,berries:80,honey:10}},
+{id:'d22',c:'b',n:'Блины с джемом',i:{flour:70,milk:150,eggs:1,butter:10,jam:30}},
+{id:'d23',c:'b',n:'Тост с авокадо и яйцом',i:{bread:70,avocado:.5,eggs:2}},
+{id:'d24',c:'b',n:'Овсянка с яблоком и арахисовой пастой',i:{oats:60,milk:200,apple:1,pbutter:15}},
+{id:'d25',c:'b',n:'Сырники из творога с джемом',i:{cottage:200,eggs:1,flour:30,butter:10,jam:20}},
+{id:'d26',c:'b',n:'Бутерброды с ветчиной и сыром',i:{bread:80,ham:50,cheese:30,butter:8,tomato:50}},
+{id:'d27',c:'b',n:'Яичница с беконом и помидорами',i:{eggs:2,bacon:40,tomato:80,bread:60,butter:8}},
+{id:'d28',c:'b',n:'Яйца с копчёным лососем на тосте',i:{eggs:2,smsalmon:50,bread:60,creamch:30}},
+{id:'d29',c:'b',n:'Йогурт с бананом и арахисовой пастой',i:{yogurt:200,banana:1,pbutter:15,oats:20}},
+{id:'d30',c:'b',n:'Шакшука с хлебом',i:{eggs:2,passata:150,pepper:.5,onion:40,oil:5,bread:60}},
+{id:'d31',c:'b',n:'Тост с творогом, ягодами и мёдом',i:{bread:80,cottage:100,berries:80,honey:10}},
+{id:'d32',c:'b',n:'Фриттата с цукини и фетой',i:{eggs:3,zucchini:.5,feta:30,oil:5,onion:30}},
+{id:'d33',c:'b',n:'Тост с арахисовой пастой и бананом',i:{bread:80,pbutter:25,banana:1}},
+{id:'d34',c:'b',n:'Рисовая каша с яблоком',i:{rice:60,milk:250,apple:1,honey:10,butter:5}},
+// --- ланчи (20) ---
 {id:'d7',c:'l',n:'Сэндвич с курицей и огурцом',i:{bread:80,chicken:80,cucumber:.5,butter:8}},
 {id:'d8',c:'l',n:'Салат из помидоров, огурца и сыра',i:{tomato:150,cucumber:1,cheese:50,oil:10,bread:40}},
 {id:'d9',c:'l',n:'Тост с сыром и яблоком',i:{bread:70,cheese:40,apple:1}},
 {id:'d10',c:'l',n:'Суп-пюре из чечевицы и моркови',i:{lentils:50,carrot:100,onion:50,oil:5}},
 {id:'d11',c:'l',n:'Яйца вкрутую с хлебом и огурцом',i:{eggs:2,bread:60,butter:8,cucumber:.5}},
+{id:'d35',c:'l',n:'Греческий салат с хлебом',i:{tomato:150,cucumber:1,feta:60,olives:30,oil:10,bread:40}},
+{id:'d36',c:'l',n:'Салат с тунцом и кукурузой, хлеб',i:{tuna:80,lettuce:50,tomato:80,corn:50,bread:60,oil:8}},
+{id:'d37',c:'l',n:'Тортилья с курицей и овощами',i:{tortilla:2,chicken:80,lettuce:30,tomato:60,creamch:20}},
+{id:'d38',c:'l',n:'Хумус с овощами и хлебом',i:{hummus:80,bread:60,cucumber:1,carrot:80}},
+{id:'d39',c:'l',n:'Тыквенный крем-суп с хлебом',i:{squash:250,onion:40,cream:30,bread:40,oil:5}},
+{id:'d40',c:'l',n:'Минестроне с фасолью и хлебом',i:{beans:100,carrot:80,potato:120,onion:40,passata:80,oil:5,bread:40}},
+{id:'d41',c:'l',n:'Суп-пюре из зелёного горошка',i:{peas:150,potato:100,onion:40,cream:30,oil:5}},
+{id:'d42',c:'l',n:'Сэндвич с ветчиной и сыром',i:{bread:80,ham:50,cheese:30,tomato:50,butter:8}},
+{id:'d43',c:'l',n:'Омлет с грибами и хлебом',i:{eggs:2,mushroom:80,cheese:20,bread:40,butter:5}},
+{id:'d44',c:'l',n:'Салат с курицей и авокадо',i:{chicken:100,lettuce:50,avocado:.5,tomato:80,oil:8,bread:30}},
+{id:'d45',c:'l',n:'Салат из нута с фетой',i:{chickpeas:120,cucumber:1,tomato:100,feta:30,oil:8}},
+{id:'d46',c:'l',n:'Тост с лососем и сливочным сыром',i:{bread:70,smsalmon:50,creamch:40,cucumber:.5}},
+{id:'d47',c:'l',n:'Тёплый картофельный салат с яйцом',i:{potato:250,eggs:2,onion:20,cucumber:.5,yogurt:50,oil:8}},
+{id:'d48',c:'l',n:'Крем-суп из цветной капусты',i:{cauli:250,potato:100,onion:40,cream:40,bread:40}},
+{id:'d49',c:'l',n:'Кабачковые оладьи с йогуртом',i:{zucchini:1,eggs:1,flour:40,yogurt:60,oil:8}},
+// --- ужины (20) ---
 {id:'d12',c:'d',n:'Курица с рисом и брокколи',i:{chicken:150,rice:80,broccoli:100,oil:8,onion:30}},
 {id:'d13',c:'d',n:'Паста болоньезе',i:{pasta:90,beef:120,passata:100,onion:40,oil:8,carrot:40}},
 {id:'d14',c:'d',n:'Лосось с картофелем и брокколи',i:{salmon:130,potato:250,broccoli:100,butter:10}},
@@ -106,7 +152,18 @@ const BD=[
 {id:'d17',c:'d',n:'Куриное рагу с грибами и картофелем',i:{chicken:140,mushroom:100,potato:200,onion:40,cream:50,oil:5}},
 {id:'d18',c:'d',n:'Фаршированный перец с рисом и говядиной',i:{pepper:1,beef:100,rice:50,passata:80,onion:30,cheese:20}},
 {id:'d19',c:'d',n:'Паста с лососем и шпинатом',i:{pasta:90,salmon:100,spinach:60,cream:50,onion:30}},
-{id:'d20',c:'d',n:'Фасоль с беконом и картофелем',i:{beans:200,bacon:40,potato:200,onion:40,passata:60}}
+{id:'d20',c:'d',n:'Фасоль с беконом и картофелем',i:{beans:200,bacon:40,potato:200,onion:40,passata:60}},
+{id:'d50',c:'d',n:'Лазанья с говядиной',i:{lasagne:80,beef:100,passata:120,milk:150,butter:15,flour:15,cheese:30,onion:40}},
+{id:'d51',c:'d',n:'Свиной стейк с картофелем и стручковой фасолью',i:{pork:180,potato:250,gbeans:100,butter:10,oil:5}},
+{id:'d52',c:'d',n:'Колбаски с картофельным пюре и горошком',i:{sausage:150,potato:250,milk:50,butter:15,peas:80}},
+{id:'d53',c:'d',n:'Фрикадельки из индейки с пастой',i:{turkey:150,pasta:90,passata:120,onion:40,parmesan:15,oil:8}},
+{id:'d54',c:'d',n:'Паста с креветками и цукини',i:{prawns:120,pasta:90,zucchini:1,cream:40,oil:10}},
+{id:'d55',c:'d',n:'Ризотто с грибами и пармезаном',i:{rice:90,mushroom:120,onion:40,parmesan:25,butter:15,oil:5}},
+{id:'d56',c:'d',n:'Ньокки в томатном соусе с моцареллой',i:{gnocchi:250,passata:120,mozzarella:60,onion:30,oil:8}},
+{id:'d57',c:'d',n:'Нутовое рагу с овощами и рисом',i:{chickpeas:150,rice:70,zucchini:.5,passata:120,onion:40,pepper:.5,oil:8}},
+{id:'d58',c:'d',n:'Запечённая курица с овощами',i:{chicken:170,potato:200,carrot:100,onion:40,oil:10}},
+{id:'d59',c:'d',n:'Говяжий гуляш с кускусом',i:{beef:130,couscous:80,pepper:1,passata:100,onion:40,oil:8}},
+{id:'d60',c:'d',n:'Запечённые баклажаны с фаршем и моцареллой',i:{aubergine:1,beef:100,passata:100,mozzarella:50,onion:30,oil:5}}
 ];
 const NAMES={b:'Завтрак',l:'Ланч + чай',d:'Ужин'};
 const SHARE={b:.3,l:.2,d:.5};
@@ -114,12 +171,12 @@ const U={g:'г',ml:'мл',pcs:'шт'};
 
 // ---------- состояние ----------
 const KEY='menu_app_v1';
-let S=Object.assign({kcal:2000,cont:true,ci:[],cd:[],off:[],packs:{},pantry:{},menu:null,applied:false,backup:null,snap:null},
+let S=Object.assign({kcal:2000,cont:true,ci:[],cd:[],off:[],del:[],packs:{},pantry:{},menu:null,applied:false,backup:null,snap:null},
   JSON.parse(localStorage.getItem(KEY)||'{}'));
 const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
 const ING=()=>[...BI,...S.ci].map(x=>({...x,p:S.packs[x.id]||x.p}));
 const ingMap=()=>Object.fromEntries(ING().map(x=>[x.id,x]));
-const DISH=()=>[...BD,...S.cd];
+const DISH=()=>[...BD.filter(d=>!S.del.includes(d.id)),...S.cd];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const f=(v,u)=>(Math.round(v*10)/10)+' '+U[u];
@@ -248,10 +305,21 @@ function vStock(){
 
 function toggleDish(id,on){S.off=S.off.filter(x=>x!==id);if(!on)S.off.push(id);save();render()}
 function delDish(id){
-  if(!confirm('Удалить блюдо?'))return;
-  S.cd=S.cd.filter(d=>d.id!==id);S.off=S.off.filter(x=>x!==id);
-  const used=S.menu.some(day=>Object.values(day).includes(id));
-  save();if(used)gen();else render();
+  const d=DISH().find(x=>x.id===id);
+  if(!d||!confirm('Удалить блюдо «'+d.n+'»?'))return;
+  touch();
+  if(id[0]==='c')S.cd=S.cd.filter(x=>x.id!==id);
+  else if(!S.del.includes(id))S.del.push(id);
+  S.off=S.off.filter(x=>x!==id);
+  // заменить блюдо в текущем меню
+  S.menu.forEach(day=>{for(const c of 'bld')if(day[c]===id){
+    day[c]=pick(c,S.menu.map(x=>x[c]).filter(x=>x!==id));
+  }});
+  save();render();
+}
+function restoreDishes(){
+  if(!confirm('Вернуть все удалённые встроенные блюда?'))return;
+  S.del=[];save();render();
 }
 
 // конструктор блюда: ингредиенты только вручную
@@ -296,54 +364,19 @@ function vDishes(){
   const m=ingMap();
   let h='';
   for(const c of 'bld'){
-    h+=`<div class="card"><h3>${NAMES[c]}</h3>`+DISH().filter(d=>d.c===c).map(d=>{
+    const list=DISH().filter(d=>d.c===c);
+    h+=`<div class="card"><h3>${NAMES[c]} (${list.length})</h3>`+list.map(d=>{
       const k=Math.round(Object.entries(d.i).reduce((a,[id,v])=>a+v*m[id].k,0));
       return `<div class="row"><label class="ck"><input type="checkbox" ${S.off.includes(d.id)?'':'checked'} onchange="toggleDish('${d.id}',this.checked)">
       <span>${esc(d.n)} <span class="sm">${k} ккал/порц.</span></span></label>
-      ${d.id[0]==='c'?`<button class="dn" onclick="delDish('${d.id}')">×</button>`:''}</div>`}).join('')+`</div>`;
+      <button class="dn" onclick="delDish('${d.id}')">×</button></div>`}).join('')+`</div>`;
   }
+  h+=`<div class="card sm">Галочка — участвует в случайной выборке. × — удалить блюдо из списка.
+  ${S.del.length?`<div><button onclick="restoreDishes()">Вернуть удалённые (${S.del.length})</button></div>`:''}</div>`;
   h+=`<div class="card"><h3>Добавить блюдо</h3>
   <input id="dn" placeholder="Название" style="width:100%;margin-bottom:6px">
   <select id="dc"><option value="b">Завтрак</option><option value="l">Ланч</option><option value="d">Ужин</option></select>
   <div id="dr"></div>
   <button onclick="addRow()">+ ингредиент</button>
   <button class="pri" onclick="saveDish()">Сохранить блюдо</button>
-  <div class="sm">Все ингредиенты вводятся вручную, количество — на 1 порцию. Упаковка не указана — подставится 500 г/мл или 6 шт. Новые продукты можно править во вкладке «Продукты».</div></div>`;
-  return h;
-}
-
-function setPack(id,v){v=+v;if(v>0)S.packs[id]=v;else delete S.packs[id];touch();save();render()}
-function addIng(){
-  const n=$('#in').value.trim(),u=$('#iu').value,p=+$('#ip').value,k=+$('#ik').value||0;
-  if(!n||!(p>0)){alert('Нужны название и размер упаковки');return}
-  S.ci.push({id:'x'+Date.now(),n,u,p,k:u==='pcs'?k:k/100});save();render();
-}
-function delIng(id){
-  if(DISH().some(d=>id in d.i)){alert('Продукт используется в блюдах');return}
-  S.ci=S.ci.filter(i=>i.id!==id);delete S.pantry[id];delete S.packs[id];save();render();
-}
-function vIngs(){
-  return `<div class="card"><h3>Продукты и упаковки</h3>
-  <div class="sm">Размер упаковки задаёт округление закупки вверх. Сверь с актуальными упаковками Tesco.</div>
-  <table><tr><th>Продукт</th><th>Упаковка</th><th>Ккал</th><th></th></tr>
-  ${ING().map(i=>`<tr><td>${esc(i.n)}</td>
-  <td><input type="number" min="1" step="any" value="${i.p}" style="width:80px" onchange="setPack('${i.id}',this.value)"> ${U[i.u]}</td>
-  <td>${i.u==='pcs'?Math.round(i.k)+'/шт':Math.round(i.k*100)+'/100'}</td>
-  <td>${i.id[0]==='x'?`<button class="dn" onclick="delIng('${i.id}')">×</button>`:''}</td></tr>`).join('')}</table></div>
-  <div class="card"><h3>Добавить продукт</h3>
-  <input id="in" placeholder="Название" style="width:100%;margin-bottom:6px">
-  <select id="iu"><option value="g">граммы</option><option value="ml">мл</option><option value="pcs">штуки</option></select>
-  <input id="ip" type="number" min="1" step="any" placeholder="Упаковка" style="width:100px">
-  <input id="ik" type="number" min="0" step="any" placeholder="Ккал/100 или /шт" style="width:140px">
-  <button class="pri" onclick="addIng()">Добавить</button></div>`;
-}
-
-function render(){
-  $('#tabs').innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" onclick="setTab('${k}')">${l}</button>`).join('');
-  $('#view').innerHTML={menu:vMenu,buy:vBuy,stock:vStock,dishes:vDishes,ings:vIngs}[tab]();
-  if(tab==='dishes')addRow();
-}
-if(!S.menu||!S.menu.length)gen();else render();
-</script>
-</body>
-</html>
+  <div c
