@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Меню на 2 дня</title>
+<meta name="theme-color" content="#222222">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Меню">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.4 system-ui,sans-serif;background:#f4f4f2;color:#222;max-width:760px;margin:auto;padding-bottom:calc(40px + env(safe-area-inset-bottom))}
+#tabs{display:flex;position:sticky;top:0;background:#222;overflow-x:auto;padding-top:env(safe-area-inset-top)}
+#tabs button{flex:1;background:none;border:0;color:#bbb;padding:12px 8px;white-space:nowrap;font-size:14px}
+#tabs button.on{color:#fff;border-bottom:3px solid #4caf50}
+#view{padding:10px}
+.card{background:#fff;border-radius:10px;padding:12px;margin-bottom:10px;box-shadow:0 1px 2px #0002}
+.meal{border-top:1px solid #eee;padding:8px 0}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0}
+.sm{font-size:13px;color:#666}
+h3{margin:0 0 6px}
+button{font:inherit;padding:6px 10px;border:1px solid #ccc;border-radius:8px;background:#fff}
+button.pri{background:#2e7d32;color:#fff;border-color:#2e7d32;margin-top:8px}
+button.dn{background:#c62828;color:#fff;border-color:#c62828}
+input,select{font:inherit;padding:6px;border:1px solid #ccc;border-radius:8px;max-width:100%}
+label{display:block;margin:4px 0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:5px 3px;border-bottom:1px solid #eee;text-align:left}
+.ck{display:flex;gap:6px;align-items:center}
+.ir{background:#fafafa;box-shadow:none;border:1px solid #e5e5e5;padding:8px}
+</style>
+</head>
+<body>
+<div id="tabs"></div>
+<div id="view"></div>
+<script>
+// ---------- PWA: иконки и манифест создаются на лету ----------
+function mkIcon(s){
+  const c=document.createElement('canvas');c.width=c.height=s;
+  const x=c.getContext('2d');
+  x.fillStyle='#2e7d32';x.fillRect(0,0,s,s);
+  x.fillStyle='#fff';x.beginPath();x.arc(s/2,s/2,s*.27,0,7);x.fill();
+  x.fillStyle='#2e7d32';x.beginPath();x.arc(s/2,s/2,s*.19,0,7);x.fill();
+  x.fillStyle='#fff';
+  x.fillRect(s*.19,s*.46,s*.04,s*.08);x.fillRect(s*.77,s*.46,s*.04,s*.08);
+  return c.toDataURL('image/png');
+}
+(function(){
+  try{
+    const i192=mkIcon(192),i512=mkIcon(512);
+    const base=new URL('./',location.href).href;
+    const mf={
+      name:'Меню на 2 дня',short_name:'Меню',
+      start_url:base,scope:base,display:'standalone',
+      background_color:'#f4f4f2',theme_color:'#222222',
+      icons:[
+        {src:i192,sizes:'192x192',type:'image/png',purpose:'any'},
+        {src:i512,sizes:'512x512',type:'image/png',purpose:'any'}
+      ]
+    };
+    const l=document.createElement('link');l.rel='manifest';
+    l.href=URL.createObjectURL(new Blob([JSON.stringify(mf)],{type:'application/manifest+json'}));
+    document.head.appendChild(l);
+    const a=document.createElement('link');a.rel='apple-touch-icon';a.href=mkIcon(180);document.head.appendChild(a);
+    const f=document.createElement('link');f.rel='icon';f.href=i192;document.head.appendChild(f);
+  }catch(e){console.warn('pwa',e)}
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(e=>console.warn('sw',e));
+})();
+
+// ---------- данные ----------
+// [id, название, ед. (g/ml/pcs), размер упаковки (ориентир Tesco), ккал на 1 ед.]
+const BI=[
+['oats','Овсяные хлопья','g',1000,3.7],['milk','Молоко','ml',1136,.47],['eggs','Яйца','pcs',6,70],
+['bread','Хлеб','g',800,2.4],['butter','Сливочное масло','g',250,7.4],['cheese','Сыр чеддер','g',350,4.1],
+['tomato','Помидоры','g',500,.18],['cucumber','Огурец','pcs',1,45],['yogurt','Греческий йогурт','g',500,.97],
+['banana','Бананы','pcs',5,90],['apple','Яблоки','pcs',6,80],['honey','Мёд','g',340,3],
+['chicken','Куриное филе','g',650,1.1],['rice','Рис','g',1000,3.6],['pasta','Паста','g',500,3.5],
+['potato','Картофель','g',2500,.77],['onion','Лук','g',1000,.4],['oil','Оливковое масло','ml',500,8.8],
+['beef','Говяжий фарш','g',500,2.5],['passata','Пассата','g',500,.3],['salmon','Лосось','g',240,2],
+['broccoli','Брокколи','g',350,.34],['carrot','Морковь','g',1000,.4],['cream','Сливки','ml',300,3.4],
+['bacon','Бекон','g',240,2.7],['spinach','Шпинат','g',240,.23],['lentils','Красная чечевица','g',500,3.5],
+['cod','Треска','g',360,.82],['mushroom','Грибы','g',300,.22],['cottage','Творог','g',300,.98],
+['pepper','Болгарский перец','pcs',3,35],['beans','Фасоль консервированная','g',400,.85]
+].map(([id,n,u,p,k])=>({id,n,u,p,k}));
+
+// c: b=завтрак, l=ланч, d=ужин; i: ингредиенты на 1 порцию
+const BD=[
+{id:'d1',c:'b',n:'Овсянка на молоке с бананом',i:{oats:60,milk:200,banana:1,honey:10}},
+{id:'d2',c:'b',n:'Омлет с сыром и помидорами',i:{eggs:3,cheese:30,tomato:80,butter:8}},
+{id:'d3',c:'b',n:'Болтунья на тосте',i:{eggs:2,bread:70,butter:10,tomato:60}},
+{id:'d4',c:'b',n:'Йогурт с яблоком, мёдом и овсянкой',i:{yogurt:200,apple:1,honey:15,oats:30}},
+{id:'d5',c:'b',n:'Бутерброды с сыром и огурцом',i:{bread:90,cheese:40,butter:10,cucumber:.5}},
+{id:'d6',c:'b',n:'Творог с бананом и мёдом',i:{cottage:150,banana:1,honey:10}},
+{id:'d7',c:'l',n:'Сэндвич с курицей и огурцом',i:{bread:80,chicken:80,cucumber:.5,butter:8}},
+{id:'d8',c:'l',n:'Салат из помидоров, огурца и сыра',i:{tomato:150,cucumber:1,cheese:50,oil:10,bread:40}},
+{id:'d9',c:'l',n:'Тост с сыром и яблоком',i:{bread:70,cheese:40,apple:1}},
+{id:'d10',c:'l',n:'Суп-пюре из чечевицы и моркови',i:{lentils:50,carrot:100,onion:50,oil:5}},
+{id:'d11',c:'l',n:'Яйца вкрутую с хлебом и огурцом',i:{eggs:2,bread:60,butter:8,cucumber:.5}},
+{id:'d12',c:'d',n:'Курица с рисом и брокколи',i:{chicken:150,rice:80,broccoli:100,oil:8,onion:30}},
+{id:'d13',c:'d',n:'Паста болоньезе',i:{pasta:90,beef:120,passata:100,onion:40,oil:8,carrot:40}},
+{id:'d14',c:'d',n:'Лосось с картофелем и брокколи',i:{salmon:130,potato:250,broccoli:100,butter:10}},
+{id:'d15',c:'d',n:'Паста карбонара',i:{pasta:90,bacon:50,eggs:1,cheese:25,cream:40}},
+{id:'d16',c:'d',n:'Запечённая треска с картофелем и морковью',i:{cod:160,potato:250,carrot:80,oil:10}},
+{id:'d17',c:'d',n:'Куриное рагу с грибами и картофелем',i:{chicken:140,mushroom:100,potato:200,onion:40,cream:50,oil:5}},
+{id:'d18',c:'d',n:'Фаршированный перец с рисом и говядиной',i:{pepper:1,beef:100,rice:50,passata:80,onion:30,cheese:20}},
+{id:'d19',c:'d',n:'Паста с лососем и шпинатом',i:{pasta:90,salmon:100,spinach:60,cream:50,onion:30}},
+{id:'d20',c:'d',n:'Фасоль с беконом и картофелем',i:{beans:200,bacon:40,potato:200,onion:40,passata:60}}
+];
+const NAMES={b:'Завтрак',l:'Ланч + чай',d:'Ужин'};
+const SHARE={b:.3,l:.2,d:.5};
+const U={g:'г',ml:'мл',pcs:'шт'};
+
+// ---------- состояние ----------
+const KEY='menu_app_v1';
+let S=Object.assign({kcal:2000,cont:true,ci:[],cd:[],off:[],packs:{},pantry:{},menu:null,applied:false,backup:null,snap:null},
+  JSON.parse(localStorage.getItem(KEY)||'{}'));
+const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
+const ING=()=>[...BI,...S.ci].map(x=>({...x,p:S.packs[x.id]||x.p}));
+const ingMap=()=>Object.fromEntries(ING().map(x=>[x.id,x]));
+const DISH=()=>[...BD,...S.cd];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const f=(v,u)=>(Math.round(v*10)/10)+' '+U[u];
+let tab='menu';
+
+// отмена применения при изменении меню
+function touch(){
+  if(S.applied&&S.backup){S.pantry=JSON.parse(S.backup)}
+  S.applied=false;S.backup=null;S.snap=null;
+}
+
+// ---------- расчёт ----------
+const rnd=(a,u)=>{const st=u==='pcs'?.5:5;return Math.max(st,Math.round(a/st)*st)};
+function portion(d,c){
+  const m=ingMap();let base=0;
+  for(const id in d.i)base+=d.i[id]*m[id].k;
+  const s=base>0?Math.min(2.5,Math.max(.5,S.kcal*SHARE[c]/base)):1;
+  const items={};let kc=0;
+  for(const id in d.i){const a=rnd(d.i[id]*s,m[id].u);items[id]=a;kc+=a*m[id].k}
+  return{items,kcal:Math.round(kc)};
+}
+function pick(c,used){
+  const pool=DISH().filter(d=>d.c===c&&!S.off.includes(d.id));
+  if(!pool.length)return null;
+  let a=pool.filter(d=>!used.includes(d.id));if(!a.length)a=pool;
+  return a[Math.floor(Math.random()*a.length)].id;
+}
+function gen(){
+  touch();const used={b:[],l:[],d:[]};
+  S.menu=[0,1].map(()=>{const r={};for(const c of 'bld'){r[c]=pick(c,used[c]);used[c].push(r[c])}return r});
+  save();render();
+}
+function rr(di,c){
+  touch();S.menu[di][c]=pick(c,[S.menu[0][c],S.menu[1][c]]);save();render();
+}
+function totals(){
+  const dm=Object.fromEntries(DISH().map(d=>[d.id,d])),need={};
+  S.menu.forEach(day=>{for(const c of 'bld'){
+    const d=dm[day[c]];if(!d)continue;
+    const p=portion(d,c),n=c==='d'?2+(S.cont?1:0):2;
+    for(const id in p.items)need[id]=(need[id]||0)+p.items[id]*n;
+  }});
+  return need;
+}
+function plan(){
+  const need=totals(),m=ingMap();
+  return Object.keys(need).map(id=>{
+    const i=m[id],n=need[id],st=S.pantry[id]||0,buy=Math.max(0,n-st);
+    const packs=Math.ceil(buy/i.p-1e-9);
+    return{i,id,n,st,packs,left:st+packs*i.p-n};
+  }).sort((a,b)=>a.i.n.localeCompare(b.i.n,'ru'));
+}
+function apply(){
+  if(S.applied)return;
+  const rows=plan();
+  S.backup=JSON.stringify(S.pantry);
+  S.snap=rows.map(r=>({id:r.id,n:r.n,st:r.st,packs:r.packs,left:r.left}));
+  rows.forEach(r=>{const v=Math.round(r.left*100)/100;if(v>0.01)S.pantry[r.id]=v;else delete S.pantry[r.id]});
+  S.applied=true;save();render();
+}
+function undo(){touch();save();render()}
+
+// ---------- представления ----------
+const TABS=[['menu','Меню'],['buy','Покупки'],['stock','Остатки'],['dishes','Блюда'],['ings','Продукты']];
+function setTab(t){tab=t;render()}
+
+function vMenu(){
+  const dm=Object.fromEntries(DISH().map(d=>[d.id,d])),m=ingMap();
+  let h=`<div class="card">
+  <label>Ккал на человека в день <input type="number" min="1000" max="4000" step="50" value="${S.kcal}" onchange="touch();S.kcal=Math.max(1000,Math.min(4000,+this.value||2000));save();render()"></label>
+  <label class="ck"><input type="checkbox" ${S.cont?'checked':''} onchange="touch();S.cont=this.checked;save();render()"> Порция в контейнер на каждом ужине (+1 человек)</label>
+  <button class="pri" onclick="gen()">Пересобрать всё меню</button>
+  <div class="sm">Распределение: завтрак 30%, ланч 20%, ужин 50%. Контейнер не входит в норму.</div></div>`;
+  S.menu.forEach((day,di)=>{
+    let tot=0,cards='';
+    for(const c of 'bld'){
+      const d=dm[day[c]];
+      if(!d){cards+=`<div class="meal"><b>${NAMES[c]}</b> — нет доступных блюд</div>`;continue}
+      const p=portion(d,c);tot+=p.kcal;
+      cards+=`<div class="meal"><div class="row"><b>${NAMES[c]}: ${esc(d.n)}</b><button onclick="rr(${di},'${c}')">↻</button></div>
+      <div class="sm">${Object.entries(p.items).map(([id,a])=>`${esc(m[id].n)} ${f(a,m[id].u)}`).join(' · ')}</div>
+      <div class="sm">${p.kcal} ккал/чел${c==='d'?` · готовить ${S.cont?3:2} порц.`:''}</div></div>`;
+    }
+    h+=`<div class="card"><h3>День ${di+1} — ${tot} ккал/чел</h3>${cards}</div>`;
+  });
+  return h;
+}
+
+function vBuy(){
+  const m=ingMap();
+  const rows=(S.applied&&S.snap)?S.snap.filter(r=>m[r.id]).map(r=>({i:m[r.id],...r})):plan();
+  const packs=rows.reduce((a,r)=>a+r.packs,0);
+  let h=`<div class="card"><h3>Список покупок</h3>
+  <div class="sm">Размеры упаковок — ориентир Tesco, правятся во вкладке «Продукты». «Есть» берётся из остатков.</div>
+  <table><tr><th>Продукт</th><th>Нужно</th><th>Есть</th><th>Купить</th><th>Останется</th></tr>
+  ${rows.map(r=>`<tr><td>${esc(r.i.n)}</td><td>${f(r.n,r.i.u)}</td><td>${r.st?f(r.st,r.i.u):'—'}</td>
+  <td>${r.packs?`<b>${r.packs} × ${f(r.i.p,r.i.u)}</b>`:'—'}</td><td>${f(Math.max(0,r.left),r.i.u)}</td></tr>`).join('')}</table>
+  <p>Упаковок к покупке: <b>${packs}</b></p>
+  ${S.applied
+   ?`<div class="sm">Применено: остатки обновлены (куплено и израсходовано).</div><button class="dn" onclick="undo()">Отменить применение</button>`
+   :`<button class="pri" onclick="apply()">Купил и приготовил → обновить остатки</button>`}
+  </div>`;
+  return h;
+}
+
+function setSt(id,v){v=+v;if(v>0)S.pantry[id]=v;else delete S.pantry[id];save();render()}
+function delSt(id){delete S.pantry[id];save();render()}
+function addSt(){
+  const id=$('#sid').value,v=+$('#sq').value;
+  if(!(v>0))return;
+  S.pantry[id]=(S.pantry[id]||0)+v;save();render();
+}
+function clearSt(){if(confirm('Очистить все остатки?')){S.pantry={};save();render()}}
+function vStock(){
+  const m=ingMap(),ent=Object.entries(S.pantry).filter(([id])=>m[id]);
+  return `<div class="card"><h3>Остатки продуктов</h3>
+  ${ent.length?ent.map(([id,v])=>`<div class="row"><span>${esc(m[id].n)}</span><span>
+  <input type="number" step="any" min="0" value="${v}" style="width:90px" onchange="setSt('${id}',this.value)"> ${U[m[id].u]}
+  <button class="dn" onclick="delSt('${id}')">×</button></span></div>`).join(''):'<div class="sm">Пусто</div>'}
+  ${ent.length?`<button onclick="clearSt()">Очистить всё</button>`:''}</div>
+  <div class="card"><h3>Добавить вручную</h3>
+  <select id="sid">${ING().map(i=>`<option value="${i.id}">${esc(i.n)} (${U[i.u]})</option>`).join('')}</select>
+  <input id="sq" type="number" min="0" step="any" placeholder="Кол-во" style="width:100px">
+  <button class="pri" onclick="addSt()">Добавить</button></div>`;
+}
+
+function toggleDish(id,on){S.off=S.off.filter(x=>x!==id);if(!on)S.off.push(id);save();render()}
+function delDish(id){
+  if(!confirm('Удалить блюдо?'))return;
+  S.cd=S.cd.filter(d=>d.id!==id);S.off=S.off.filter(x=>x!==id);
+  const used=S.menu.some(day=>Object.values(day).includes(id));
+  save();if(used)gen();else render();
+}
+
+// конструктор блюда: ингредиенты только вручную
+function addRow(){
+  const d=document.createElement('div');d.className='card ir';
+  d.innerHTML=`<input class="rn" placeholder="Название продукта" style="width:100%;margin-bottom:6px">
+  <div class="row" style="flex-wrap:wrap;justify-content:flex-start">
+  <select class="ru"><option value="g">г</option><option value="ml">мл</option><option value="pcs">шт</option></select>
+  <input class="ra" type="number" min="0" step="any" placeholder="на 1 порц." style="width:95px">
+  <input class="rk" type="number" min="0" step="any" placeholder="ккал/100 (шт: на 1)" style="width:130px">
+  <input class="rp" type="number" min="1" step="any" placeholder="упаковка" style="width:90px">
+  <button onclick="this.closest('.ir').remove()">×</button></div>`;
+  $('#dr').appendChild(d);
+}
+
+function saveDish(){
+  const n=$('#dn').value.trim(),c=$('#dc').value;
+  const rows=[...document.querySelectorAll('#dr .ir')].map(r=>({
+    name:r.querySelector('.rn').value.trim(),
+    u:r.querySelector('.ru').value,
+    a:+r.querySelector('.ra').value,
+    k:+r.querySelector('.rk').value||0,
+    p:+r.querySelector('.rp').value
+  })).filter(r=>r.name||r.a);
+  if(!n||!rows.length||rows.some(r=>!r.name||!(r.a>0))){
+    alert('Нужны название блюда, а у каждого ингредиента — название и количество');return;
+  }
+  const i={};
+  rows.forEach((r,idx)=>{
+    let ex=ING().find(x=>x.n.toLowerCase()===r.name.toLowerCase());
+    if(!ex){
+      const p=r.p>0?r.p:(r.u==='pcs'?6:500);
+      ex={id:'x'+Date.now()+'_'+idx,n:r.name,u:r.u,p,k:r.u==='pcs'?r.k:r.k/100};
+      S.ci.push(ex);
+    }
+    i[ex.id]=(i[ex.id]||0)+r.a;
+  });
+  S.cd.push({id:'c'+Date.now(),c,n,i});save();render();
+}
+
+function vDishes(){
+  const m=ingMap();
+  let h='';
+  for(const c of 'bld'){
+    h+=`<div class="card"><h3>${NAMES[c]}</h3>`+DISH().filter(d=>d.c===c).map(d=>{
+      const k=Math.round(Object.entries(d.i).reduce((a,[id,v])=>a+v*m[id].k,0));
+      return `<div class="row"><label class="ck"><input type="checkbox" ${S.off.includes(d.id)?'':'checked'} onchange="toggleDish('${d.id}',this.checked)">
+      <span>${esc(d.n)} <span class="sm">${k} ккал/порц.</span></span></label>
+      ${d.id[0]==='c'?`<button class="dn" onclick="delDish('${d.id}')">×</button>`:''}</div>`}).join('')+`</div>`;
+  }
+  h+=`<div class="card"><h3>Добавить блюдо</h3>
+  <input id="dn" placeholder="Название" style="width:100%;margin-bottom:6px">
+  <select id="dc"><option value="b">Завтрак</option><option value="l">Ланч</option><option value="d">Ужин</option></select>
+  <div id="dr"></div>
+  <button onclick="addRow()">+ ингредиент</button>
+  <button class="pri" onclick="saveDish()">Сохранить блюдо</button>
+  <div class="sm">Все ингредиенты вводятся вручную, количество — на 1 порцию. Упаковка не указана — подставится 500 г/мл или 6 шт. Новые продукты можно править во вкладке «Продукты».</div></div>`;
+  return h;
+}
+
+function setPack(id,v){v=+v;if(v>0)S.packs[id]=v;else delete S.packs[id];touch();save();render()}
+function addIng(){
+  const n=$('#in').value.trim(),u=$('#iu').value,p=+$('#ip').value,k=+$('#ik').value||0;
+  if(!n||!(p>0)){alert('Нужны название и размер упаковки');return}
+  S.ci.push({id:'x'+Date.now(),n,u,p,k:u==='pcs'?k:k/100});save();render();
+}
+function delIng(id){
+  if(DISH().some(d=>id in d.i)){alert('Продукт используется в блюдах');return}
+  S.ci=S.ci.filter(i=>i.id!==id);delete S.pantry[id];delete S.packs[id];save();render();
+}
+function vIngs(){
+  return `<div class="card"><h3>Продукты и упаковки</h3>
+  <div class="sm">Размер упаковки задаёт округление закупки вверх. Сверь с актуальными упаковками Tesco.</div>
+  <table><tr><th>Продукт</th><th>Упаковка</th><th>Ккал</th><th></th></tr>
+  ${ING().map(i=>`<tr><td>${esc(i.n)}</td>
+  <td><input type="number" min="1" step="any" value="${i.p}" style="width:80px" onchange="setPack('${i.id}',this.value)"> ${U[i.u]}</td>
+  <td>${i.u==='pcs'?Math.round(i.k)+'/шт':Math.round(i.k*100)+'/100'}</td>
+  <td>${i.id[0]==='x'?`<button class="dn" onclick="delIng('${i.id}')">×</button>`:''}</td></tr>`).join('')}</table></div>
+  <div class="card"><h3>Добавить продукт</h3>
+  <input id="in" placeholder="Название" style="width:100%;margin-bottom:6px">
+  <select id="iu"><option value="g">граммы</option><option value="ml">мл</option><option value="pcs">штуки</option></select>
+  <input id="ip" type="number" min="1" step="any" placeholder="Упаковка" style="width:100px">
+  <input id="ik" type="number" min="0" step="any" placeholder="Ккал/100 или /шт" style="width:140px">
+  <button class="pri" onclick="addIng()">Добавить</button></div>`;
+}
+
+function render(){
+  $('#tabs').innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" onclick="setTab('${k}')">${l}</button>`).join('');
+  $('#view').innerHTML={menu:vMenu,buy:vBuy,stock:vStock,dishes:vDishes,ings:vIngs}[tab]();
+  if(tab==='dishes')addRow();
+}
+if(!S.menu||!S.menu.length)gen();else render();
+</script>
+</body>
+</html>
