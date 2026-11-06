@@ -1,5 +1,5 @@
 // sw.js — положить рядом с html-файлом (тот же каталог). Нужен HTTPS или localhost.
-const VER = 'menu-v2';          // менять при каждом обновлении приложения
+const VER = 'menu-v3';          // менять при каждом обновлении приложения
 const CORE = ['./'];
 
 self.addEventListener('install', e => {
