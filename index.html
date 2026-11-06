@@ -186,7 +186,8 @@ const KEY='menu_app_v1';
 let S=Object.assign({kcal:2000,cont:true,ci:[],cd:[],off:[],del:[],delI:[],packs:{},prices:{},pantry:{},menu:null,applied:false,backup:null,snap:null,chk:{},smart:true},
   JSON.parse(localStorage.getItem(KEY)||'{}'));
 const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
-const ING=()=>[...BI.filter(x=>!S.delI.includes(x.id)),...S.ci].map(x=>({...x,p:S.packs[x.id]||x.p,c:S.prices[x.id]??x.c??PR[x.id]??0}));
+// продукты всегда в алфавитном порядке
+const ING=()=>[...BI.filter(x=>!S.delI.includes(x.id)),...S.ci].map(x=>({...x,p:S.packs[x.id]||x.p,c:S.prices[x.id]??x.c??PR[x.id]??0})).sort((a,b)=>a.n.localeCompare(b.n,'ru'));
 const ingMap=()=>Object.fromEntries(ING().map(x=>[x.id,x]));
 // блюда, у которых удалён хотя бы один продукт, скрыты
 const DISH=()=>{
@@ -372,7 +373,8 @@ function addSt(){
 }
 function clearSt(){if(confirm('Очистить все остатки?')){S.pantry={};save();render()}}
 function vStock(){
-  const m=ingMap(),ent=Object.entries(S.pantry).filter(([id])=>m[id]);
+  const m=ingMap(),ent=Object.entries(S.pantry).filter(([id])=>m[id])
+    .sort((a,b)=>m[a[0]].n.localeCompare(m[b[0]].n,'ru'));
   return `<div class="card"><h3>Остатки продуктов</h3>
   ${ent.length?ent.map(([id,v])=>`<div class="row"><span>${esc(m[id].n)}</span><span>
   <input type="number" step="any" min="0" value="${v}" style="width:90px" onchange="setSt('${id}',this.value)"> ${U[m[id].u]}
