@@ -28,9 +28,12 @@ button.pri{background:#2e7d32;color:#fff;border-color:#2e7d32;margin-top:8px}
 button.dn{background:#c62828;color:#fff;border-color:#c62828}
 input,select{font:inherit;padding:6px;border:1px solid #ccc;border-radius:8px;max-width:100%}
 input:disabled,select:disabled{background:#eee;color:#555}
+input[type=checkbox]{width:22px;height:22px;padding:0}
 label{display:block;margin:4px 0}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:5px 3px;border-bottom:1px solid #eee;text-align:left}
+tr.got td{opacity:.45;text-decoration:line-through}
+tr.got td:first-child{opacity:1;text-decoration:none}
 .ck{display:flex;gap:6px;align-items:center}
 .ir{background:#fafafa;box-shadow:none;border:1px solid #e5e5e5;padding:8px}
 .hint{color:#2e7d32;margin-top:4px}
@@ -187,8 +190,8 @@ const U={g:'г',ml:'мл',pcs:'шт'};
 
 // ---------- состояние ----------
 const KEY='menu_app_v1';
-// ed: правки встроенных блюд {id:{c,n,i}}
-let S=Object.assign({kcal:2000,cont:true,ci:[],cd:[],ed:{},off:[],del:[],delI:[],packs:{},prices:{},pantry:{},menu:null,applied:false,backup:null,snap:null},
+// ed: правки встроенных блюд {id:{c,n,i}}; got: отметки «в корзине» {id:1}
+let S=Object.assign({kcal:2000,cont:true,ci:[],cd:[],ed:{},got:{},off:[],del:[],delI:[],packs:{},prices:{},pantry:{},menu:null,applied:false,backup:null,snap:null},
   JSON.parse(localStorage.getItem(KEY)||'{}'));
 const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
 const ING=()=>[...BI.filter(x=>!S.delI.includes(x.id)),...S.ci].map(x=>({...x,p:S.packs[x.id]||x.p,c:S.prices[x.id]??x.c??PR[x.id]??0}));
@@ -228,7 +231,7 @@ function pick(c,used){
   return a[Math.floor(Math.random()*a.length)].id;
 }
 function gen(){
-  touch();const used={b:[],l:[],d:[]};
+  touch();S.got={};const used={b:[],l:[],d:[]};
   S.menu=[0,1].map(()=>{const r={};for(const c of 'bld'){r[c]=pick(c,used[c]);used[c].push(r[c])}return r});
   save();render();
 }
@@ -307,15 +310,20 @@ function vMenu(){
   return h;
 }
 
+function toggleGot(id,on){if(on)S.got[id]=1;else delete S.got[id];save();render()}
 function vBuy(){
   const rows=buyRows();
+  const need=rows.filter(r=>r.packs),inCart=need.filter(r=>S.got[r.id]).length;
   const packs=rows.reduce((a,r)=>a+r.packs,0),cost=buyCost(rows);
   let h=`<div class="card"><h3>Список покупок</h3>
-  <div class="sm">Размеры упаковок и цены — ориентир Tesco, правятся во вкладке «Продукты». «Есть» берётся из остатков.</div>
-  <table><tr><th>Продукт</th><th>Нужно</th><th>Есть</th><th>Купить</th><th>Останется</th></tr>
-  ${rows.map(r=>`<tr><td>${esc(r.i.n)}</td><td>${f(r.n,r.i.u)}</td><td>${r.st?f(r.st,r.i.u):'—'}</td>
+  <div class="sm">Размеры упаковок и цены — ориентир Tesco, правятся во вкладке «Продукты». «Есть» берётся из остатков. Галочка — положил в корзину.</div>
+  <table><tr><th></th><th>Продукт</th><th>Нужно</th><th>Есть</th><th>Купить</th><th>Останется</th></tr>
+  ${rows.map(r=>`<tr class="${r.packs&&S.got[r.id]?'got':''}">
+  <td>${r.packs?`<input type="checkbox" ${S.got[r.id]?'checked':''} onchange="toggleGot('${r.id}',this.checked)">`:''}</td>
+  <td>${esc(r.i.n)}</td><td>${f(r.n,r.i.u)}</td><td>${r.st?f(r.st,r.i.u):'—'}</td>
   <td>${r.packs?`<b>${r.packs} × ${f(r.i.p,r.i.u)}</b><div class="sm">${gbp(r.packs*r.i.c)}</div>`:'—'}</td><td>${f(Math.max(0,r.left),r.i.u)}</td></tr>`).join('')}</table>
-  <p>Упаковок к покупке: <b>${packs}</b><br>Стоимость закупки: <span class="tot">${gbp(cost)}</span></p>
+  <p>В корзине: <b>${inCart}</b> из <b>${need.length}</b> позиций<br>
+  Упаковок к покупке: <b>${packs}</b><br>Стоимость закупки: <span class="tot">${gbp(cost)}</span></p>
   ${S.applied
    ?`<div class="sm">Применено: остатки обновлены (куплено и израсходовано).</div>
    <button class="pri" onclick="nextCycle()">Следующие 2 дня с этими остатками</button>
