@@ -16,6 +16,7 @@ body{margin:0;font:15px/1.4 system-ui,sans-serif;background:#f4f4f2;color:#222;m
 #tabs button{flex:1;background:none;border:0;color:#bbb;padding:12px 8px;white-space:nowrap;font-size:14px}
 #tabs button.on{color:#fff;border-bottom:3px solid #4caf50}
 #view{padding:10px;min-height:70vh}
+#form{scroll-margin-top:60px}
 .card{background:#fff;border-radius:10px;padding:12px;margin-bottom:10px;box-shadow:0 1px 2px #0002}
 .meal{border-top:1px solid #eee;padding:8px 0}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0}
@@ -33,6 +34,7 @@ th,td{padding:5px 3px;border-bottom:1px solid #eee;text-align:left}
 .ck{display:flex;gap:6px;align-items:center}
 .ir{background:#fafafa;box-shadow:none;border:1px solid #e5e5e5;padding:8px}
 .hint{color:#2e7d32;margin-top:4px}
+.btns{display:flex;gap:6px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -185,21 +187,23 @@ const U={g:'г',ml:'мл',pcs:'шт'};
 
 // ---------- состояние ----------
 const KEY='menu_app_v1';
-let S=Object.assign({kcal:2000,cont:true,ci:[],cd:[],off:[],del:[],delI:[],packs:{},prices:{},pantry:{},menu:null,applied:false,backup:null,snap:null},
+// ed: правки встроенных блюд {id:{c,n,i}}
+let S=Object.assign({kcal:2000,cont:true,ci:[],cd:[],ed:{},off:[],del:[],delI:[],packs:{},prices:{},pantry:{},menu:null,applied:false,backup:null,snap:null},
   JSON.parse(localStorage.getItem(KEY)||'{}'));
 const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
 const ING=()=>[...BI.filter(x=>!S.delI.includes(x.id)),...S.ci].map(x=>({...x,p:S.packs[x.id]||x.p,c:S.prices[x.id]??x.c??PR[x.id]??0}));
 const ingMap=()=>Object.fromEntries(ING().map(x=>[x.id,x]));
-// блюда, у которых удалён хотя бы один продукт, скрыты
+// блюда: встроенные (с правками) + свои; с удалённым продуктом скрыты
 const DISH=()=>{
   const ok=new Set(ING().map(x=>x.id));
-  return [...BD.filter(d=>!S.del.includes(d.id)),...S.cd].filter(d=>Object.keys(d.i).every(id=>ok.has(id)));
+  return [...BD.filter(d=>!S.del.includes(d.id)).map(d=>S.ed[d.id]?{...d,...S.ed[d.id]}:d),...S.cd]
+    .filter(d=>Object.keys(d.i).every(id=>ok.has(id)));
 };
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const f=(v,u)=>(Math.round(v*10)/10)+' '+U[u];
 const gbp=v=>'£'+(Math.round(v*100)/100).toFixed(2);
-let tab='menu';
+let tab='menu',editing=null;
 
 // отмена применения при изменении меню
 function touch(){
@@ -231,11 +235,12 @@ function gen(){
 function rr(di,c){
   touch();S.menu[di][c]=pick(c,[S.menu[0][c],S.menu[1][c]]);save();render();
 }
-// заменить в меню блюда, которых больше нет
+// заменить в меню блюда, которых больше нет или которые сменили приём пищи
 function fixMenu(){
-  const ids=new Set(DISH().map(d=>d.id));
-  S.menu.forEach(day=>{for(const c of 'bld')if(!ids.has(day[c])){
-    day[c]=pick(c,S.menu.map(x=>x[c]).filter(x=>ids.has(x)));
+  const dm=Object.fromEntries(DISH().map(d=>[d.id,d]));
+  S.menu.forEach(day=>{for(const c of 'bld'){
+    const d=dm[day[c]];
+    if(!d||d.c!==c)day[c]=pick(c,S.menu.map(x=>x[c]).filter(x=>dm[x]&&dm[x].c===c));
   }});
 }
 function totals(){
@@ -278,7 +283,7 @@ function nextCycle(){
 
 // ---------- представления ----------
 const TABS=[['menu','Меню'],['buy','Покупки'],['stock','Остатки'],['dishes','Блюда'],['ings','Продукты']];
-function setTab(t){tab=t;render()}
+function setTab(t){tab=t;editing=null;render()}
 
 function vMenu(){
   const dm=Object.fromEntries(DISH().map(d=>[d.id,d])),m=ingMap();
@@ -347,14 +352,40 @@ function delDish(id){
   if(!d||!confirm('Удалить блюдо «'+d.n+'»?'))return;
   touch();
   if(id[0]==='c')S.cd=S.cd.filter(x=>x.id!==id);
-  else if(!S.del.includes(id))S.del.push(id);
+  else{if(!S.del.includes(id))S.del.push(id);delete S.ed[id]}
   S.off=S.off.filter(x=>x!==id);
+  if(editing===id)editing=null;
   fixMenu();
   save();render();
 }
 function restoreDishes(){
   if(!confirm('Вернуть все удалённые встроенные блюда?'))return;
-  S.del=[];save();render();
+  S.del=[];fixMenu();save();render();
+}
+
+// ---------- редактирование блюда ----------
+function startEdit(id){
+  if(!DISH().find(d=>d.id===id))return;
+  editing=id;tab='dishes';render();
+}
+function cancelEdit(){editing=null;render()}
+function resetDish(id){
+  if(!confirm('Вернуть блюдо к исходному виду?'))return;
+  touch();delete S.ed[id];editing=null;fixMenu();save();render();
+}
+// форма: пустая или заполненная редактируемым блюдом
+function initForm(){
+  if(!editing){addRow();return}
+  const d=DISH().find(x=>x.id===editing);
+  if(!d){editing=null;addRow();return}
+  const m=ingMap();
+  $('#dn').value=d.n;$('#dc').value=d.c;
+  for(const id in d.i){
+    const r=addRow(),inp=r.querySelector('.rn');
+    inp.value=m[id].n;onName(inp);
+    r.querySelector('.ra').value=d.i[id];
+  }
+  $('#form').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 // конструктор блюда: название с подсказками из библиотеки продуктов
@@ -370,6 +401,7 @@ function addRow(){
   <button onclick="this.closest('.ir').remove()">×</button></div>
   <div class="sm hint"></div>`;
   $('#dr').appendChild(d);
+  return d;
 }
 // выбран продукт из библиотеки: подставить и заблокировать его параметры
 function onName(inp){
@@ -411,7 +443,16 @@ function saveDish(){
     }
     i[ex.id]=(i[ex.id]||0)+r.a;
   });
-  S.cd.push({id:'c'+Date.now(),c,n,i});save();render();
+  if(editing){
+    touch();
+    if(editing[0]==='c'){
+      const k=S.cd.findIndex(x=>x.id===editing);
+      if(k>=0)S.cd[k]={id:editing,c,n,i};
+    }else S.ed[editing]={c,n,i};
+    editing=null;
+    fixMenu();
+  }else S.cd.push({id:'c'+Date.now(),c,n,i});
+  save();render();
 }
 
 function vDishes(){
@@ -422,18 +463,23 @@ function vDishes(){
     h+=`<div class="card"><h3>${NAMES[c]} (${list.length})</h3>`+list.map(d=>{
       const k=Math.round(Object.entries(d.i).reduce((a,[id,v])=>a+v*m[id].k,0));
       return `<div class="row"><label class="ck"><input type="checkbox" ${S.off.includes(d.id)?'':'checked'} onchange="toggleDish('${d.id}',this.checked)">
-      <span>${esc(d.n)} <span class="sm">${k} ккал/порц.</span></span></label>
-      <button class="dn" onclick="delDish('${d.id}')">×</button></div>`}).join('')+`</div>`;
+      <span>${esc(d.n)} <span class="sm">${k} ккал/порц.${S.ed[d.id]?' · изменено':''}</span></span></label>
+      <span class="btns"><button onclick="startEdit('${d.id}')">✎</button><button class="dn" onclick="delDish('${d.id}')">×</button></span></div>`}).join('')+`</div>`;
   }
-  h+=`<div class="card sm">Галочка — участвует в случайной выборке. × — удалить блюдо из списка. Блюда с удалённым продуктом скрыты.
+  h+=`<div class="card sm">Галочка — участвует в случайной выборке. ✎ — редактировать блюдо. × — удалить блюдо из списка. Блюда с удалённым продуктом скрыты.
   ${S.del.length?`<div><button onclick="restoreDishes()">Вернуть удалённые (${S.del.length})</button></div>`:''}</div>`;
-  h+=`<div class="card"><h3>Добавить блюдо</h3>
+  const canReset=editing&&editing[0]!=='c'&&S.ed[editing];
+  h+=`<div class="card" id="form"><h3>${editing?'Редактировать блюдо':'Добавить блюдо'}</h3>
   <datalist id="ingl">${ING().map(i=>`<option value="${esc(i.n)}">${U[i.u]}, упак. ${i.p}</option>`).join('')}</datalist>
   <input id="dn" placeholder="Название" style="width:100%;margin-bottom:6px">
   <select id="dc"><option value="b">Завтрак</option><option value="l">Ланч</option><option value="d">Ужин</option></select>
   <div id="dr"></div>
   <button onclick="addRow()">+ ингредиент</button>
-  <button class="pri" onclick="saveDish()">Сохранить блюдо</button>
+  ${editing
+    ?`<button class="pri" onclick="saveDish()">Сохранить изменения</button>
+      <button onclick="cancelEdit()" style="margin-top:8px">Отмена</button>
+      ${canReset?`<button class="dn" onclick="resetDish('${editing}')" style="margin-top:8px">Вернуть исходное</button>`:''}`
+    :`<button class="pri" onclick="saveDish()">Сохранить блюдо</button>`}
   <div class="sm">Начни вводить название ингредиента — появятся продукты из библиотеки. Если выбрать готовый, его параметры подставятся сами. Нового продукта нет в списке — введи название и параметры вручную, он добавится в библиотеку. Количество — на 1 порцию. Упаковка не указана — подставится 500 г/мл или 6 шт.</div></div>`;
   return h;
 }
@@ -494,7 +540,7 @@ function vIngs(){
 function render(){
   $('#tabs').innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" onclick="setTab('${k}')">${l}</button>`).join('');
   $('#view').innerHTML={menu:vMenu,buy:vBuy,stock:vStock,dishes:vDishes,ings:vIngs}[tab]();
-  if(tab==='dishes')addRow();
+  if(tab==='dishes')initForm();
   const on=$('#tabs .on');if(on&&on.scrollIntoView)on.scrollIntoView({inline:'center',block:'nearest'});
 }
 
