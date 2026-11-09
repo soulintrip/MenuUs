@@ -26,7 +26,8 @@ h3{margin:0 0 6px}
 button{font:inherit;padding:6px 10px;border:1px solid #ccc;border-radius:8px;background:#fff}
 button.pri{background:#2e7d32;color:#fff;border-color:#2e7d32;margin-top:8px}
 button.dn{background:#c62828;color:#fff;border-color:#c62828}
-input,select{font:inherit;padding:6px;border:1px solid #ccc;border-radius:8px;max-width:100%}
+input,select,textarea{font:inherit;padding:6px;border:1px solid #ccc;border-radius:8px;max-width:100%}
+textarea{width:100%;margin:6px 0}
 input:disabled,select:disabled{background:#eee;color:#555}
 input[type=checkbox]{width:22px;height:22px;padding:0}
 label{display:block;margin:4px 0}
@@ -191,16 +192,20 @@ const U={g:'г',ml:'мл',pcs:'шт'};
 // ---------- состояние ----------
 const KEY='menu_app_v1';
 // ed: правки встроенных блюд {id:{c,n,i}}; got: отметки «в корзине» {id:1}
-let S=Object.assign({kcal:2000,cont:true,ci:[],cd:[],ed:{},got:{},off:[],del:[],delI:[],packs:{},prices:{},pantry:{},menu:null,applied:false,backup:null,snap:null},
-  JSON.parse(localStorage.getItem(KEY)||'{}'));
+const DEF=()=>({kcal:2000,cont:true,ci:[],cd:[],ed:{},got:{},off:[],del:[],delI:[],packs:{},prices:{},pantry:{},menu:null,applied:false,backup:null,snap:null});
+let S=Object.assign(DEF(),JSON.parse(localStorage.getItem(KEY)||'{}'));
 const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
-const ING=()=>[...BI.filter(x=>!S.delI.includes(x.id)),...S.ci].map(x=>({...x,p:S.packs[x.id]||x.p,c:S.prices[x.id]??x.c??PR[x.id]??0}));
+// сортировка по названию (А-Я)
+const byName=(a,b)=>a.n.localeCompare(b.n,'ru',{sensitivity:'base'});
+// продукты по алфавиту
+const ING=()=>[...BI.filter(x=>!S.delI.includes(x.id)),...S.ci]
+  .map(x=>({...x,p:S.packs[x.id]||x.p,c:S.prices[x.id]??x.c??PR[x.id]??0})).sort(byName);
 const ingMap=()=>Object.fromEntries(ING().map(x=>[x.id,x]));
-// блюда: встроенные (с правками) + свои; с удалённым продуктом скрыты
+// блюда по алфавиту: встроенные (с правками) + свои; с удалённым продуктом скрыты
 const DISH=()=>{
   const ok=new Set(ING().map(x=>x.id));
   return [...BD.filter(d=>!S.del.includes(d.id)).map(d=>S.ed[d.id]?{...d,...S.ed[d.id]}:d),...S.cd]
-    .filter(d=>Object.keys(d.i).every(id=>ok.has(id)));
+    .filter(d=>Object.keys(d.i).every(id=>ok.has(id))).sort(byName);
 };
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -212,6 +217,65 @@ let tab='menu',editing=null;
 function touch(){
   if(S.applied&&S.backup){S.pantry=JSON.parse(S.backup)}
   S.applied=false;S.backup=null;S.snap=null;
+}
+
+// ---------- резервная копия: скачать / загрузить ----------
+function dataJSON(){
+  return JSON.stringify({app:'menu2days',v:1,date:new Date().toISOString(),data:S},null,1);
+}
+function exportData(){
+  const blob=new Blob([dataJSON()],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='menu-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+function copyData(){
+  const t=dataJSON();
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(()=>alert('Данные скопированы. Вставь их в заметки или мессенджер.'))
+      .catch(()=>fallbackCopy(t));
+  }else fallbackCopy(t);
+}
+function fallbackCopy(t){
+  const ta=$('#imp');ta.value=t;ta.focus();ta.select();
+  alert('Текст выделен в поле ниже. Скопируй его вручную.');
+}
+function importFile(inp){
+  const file=inp.files&&inp.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{applyImport(String(r.result));inp.value=''};
+  r.onerror=()=>alert('Не удалось прочитать файл');
+  r.readAsText(file);
+}
+function importText(){
+  const t=$('#imp').value.trim();
+  if(!t){alert('Поле пустое: вставь скопированные данные');return}
+  applyImport(t);
+}
+function applyImport(txt){
+  let o;
+  try{o=JSON.parse(txt)}catch(e){alert('Не удалось прочитать данные: это не резервная копия приложения');return}
+  const d=(o&&o.app==='menu2days'&&o.data)?o.data:o;
+  if(!d||typeof d!=='object'||Array.isArray(d)||!['pantry','cd','menu','kcal','ci'].some(k=>k in d)){
+    alert('Это не резервная копия приложения');return;
+  }
+  if(!confirm('Заменить все текущие данные загруженными?'))return;
+  const n=DEF();
+  for(const k in n){
+    if(!(k in d))continue;
+    const a=n[k],b=d[k];
+    if(a===null){if(b===null||Array.isArray(b)||typeof b==='string')n[k]=b}
+    else if(Array.isArray(a)){if(Array.isArray(b))n[k]=b}
+    else if(typeof a==='object'){if(b&&typeof b==='object'&&!Array.isArray(b))n[k]=b}
+    else if(typeof b===typeof a)n[k]=b;
+  }
+  n.kcal=Math.max(1000,Math.min(4000,+n.kcal||2000));
+  if(!Array.isArray(n.menu)||n.menu.length!==2||!n.menu.every(x=>x&&typeof x==='object'))n.menu=null;
+  S=n;editing=null;
+  if(S.menu){fixMenu();save();render()}else gen();
+  alert('Данные загружены');
 }
 
 // ---------- расчёт ----------
@@ -261,12 +325,13 @@ function plan(){
     const i=m[id],n=need[id],st=S.pantry[id]||0,buy=Math.max(0,n-st);
     const packs=Math.ceil(buy/i.p-1e-9);
     return{i,id,n,st,packs,left:st+packs*i.p-n};
-  }).sort((a,b)=>a.i.n.localeCompare(b.i.n,'ru'));
+  }).sort((a,b)=>a.i.n.localeCompare(b.i.n,'ru',{sensitivity:'base'}));
 }
 // строки закупки (после «применить» берётся снимок)
 function buyRows(){
   const m=ingMap();
-  return(S.applied&&S.snap)?S.snap.filter(r=>m[r.id]).map(r=>({i:m[r.id],...r})):plan();
+  return(S.applied&&S.snap)?S.snap.filter(r=>m[r.id]).map(r=>({i:m[r.id],...r}))
+    .sort((a,b)=>a.i.n.localeCompare(b.i.n,'ru',{sensitivity:'base'})):plan();
 }
 const buyCost=rows=>rows.reduce((a,r)=>a+r.packs*r.i.c,0);
 function apply(){
@@ -307,6 +372,15 @@ function vMenu(){
     }
     h+=`<div class="card"><h3>День ${di+1} — ${tot} ккал/чел</h3>${cards}</div>`;
   });
+  h+=`<div class="card"><h3>Резервная копия данных</h3>
+  <div class="sm">Все твои настройки: меню, остатки, цены, свои и изменённые блюда и продукты, удалённые позиции. Скачай файл и загрузи его на другом устройстве или после очистки браузера.</div>
+  <div class="row" style="justify-content:flex-start;flex-wrap:wrap;margin-top:6px">
+  <button onclick="exportData()">⬇ Скачать файл</button>
+  <button onclick="copyData()">Копировать текст</button></div>
+  <label style="margin-top:8px">Загрузить из файла<br><input type="file" accept=".json,application/json" onchange="importFile(this)"></label>
+  <textarea id="imp" rows="3" placeholder="Или вставь сюда скопированные данные"></textarea>
+  <button onclick="importText()">Загрузить из текста</button>
+  <div class="sm" style="margin-top:6px">При загрузке все текущие данные заменяются, перед этим приложение спросит подтверждение.</div></div>`;
   return h;
 }
 
@@ -342,7 +416,8 @@ function addSt(){
 }
 function clearSt(){if(confirm('Очистить все остатки?')){S.pantry={};save();render()}}
 function vStock(){
-  const m=ingMap(),ent=Object.entries(S.pantry).filter(([id])=>m[id]);
+  const m=ingMap(),ent=Object.entries(S.pantry).filter(([id])=>m[id])
+    .sort((a,b)=>m[a[0]].n.localeCompare(m[b[0]].n,'ru',{sensitivity:'base'}));
   return `<div class="card"><h3>Остатки продуктов</h3>
   ${ent.length?ent.map(([id,v])=>`<div class="row"><span>${esc(m[id].n)}</span><span>
   <input type="number" step="any" min="0" value="${v}" style="width:90px" onchange="setSt('${id}',this.value)"> ${U[m[id].u]}
@@ -474,7 +549,7 @@ function vDishes(){
       <span>${esc(d.n)} <span class="sm">${k} ккал/порц.${S.ed[d.id]?' · изменено':''}</span></span></label>
       <span class="btns"><button onclick="startEdit('${d.id}')">✎</button><button class="dn" onclick="delDish('${d.id}')">×</button></span></div>`}).join('')+`</div>`;
   }
-  h+=`<div class="card sm">Галочка — участвует в случайной выборке. ✎ — редактировать блюдо. × — удалить блюдо из списка. Блюда с удалённым продуктом скрыты.
+  h+=`<div class="card sm">Галочка — участвует в случайной выборке. ✎ — редактировать блюдо. × — удалить блюдо из списка. Блюда с удалённым продуктом скрыты. Всё отсортировано по алфавиту.
   ${S.del.length?`<div><button onclick="restoreDishes()">Вернуть удалённые (${S.del.length})</button></div>`:''}</div>`;
   const canReset=editing&&editing[0]!=='c'&&S.ed[editing];
   h+=`<div class="card" id="form"><h3>${editing?'Редактировать блюдо':'Добавить блюдо'}</h3>
@@ -528,7 +603,7 @@ function vIngs(){
   <div class="tot">${gbp(cost)}</div>
   <div class="sm">По текущему меню, за вычетом остатков, упаковками целиком. Детали — во вкладке «Покупки».</div></div>
   <div class="card"><h3>Продукты, упаковки и цены</h3>
-  <div class="sm">Цена — за одну упаковку, £. Цены Tesco UK приблизительные: сверь с tesco.com и поправь. Пустое поле — вернуть стандартную цену. Размер упаковки задаёт округление закупки вверх. × — удалить продукт.</div>
+  <div class="sm">Цена — за одну упаковку, £. Цены Tesco UK приблизительные: сверь с tesco.com и поправь. Пустое поле — вернуть стандартную цену. Размер упаковки задаёт округление закупки вверх. × — удалить продукт. Список по алфавиту.</div>
   <table><tr><th>Продукт</th><th>Упаковка</th><th>£</th><th></th></tr>
   ${ING().map(i=>`<tr><td>${esc(i.n)}<div class="sm">${i.u==='pcs'?Math.round(i.k)+' ккал/шт':Math.round(i.k*100)+' ккал/100'}</div></td>
   <td><input type="number" min="1" step="any" value="${i.p}" style="width:72px" onchange="setPack('${i.id}',this.value)"> ${U[i.u]}</td>
